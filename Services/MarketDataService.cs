@@ -1,4 +1,5 @@
-﻿using AgriMarketAnalysis.Models;
+﻿using AgriMarketAnalysis.Data;
+using AgriMarketAnalysis.Models;
 using System.Reactive.Subjects;
 
 namespace AgriMarketAnalysis.Services
@@ -6,14 +7,31 @@ namespace AgriMarketAnalysis.Services
     public class MarketDataService
     {
         private readonly Subject<AgriculturalGood> _marketDataStream = new();
+        private readonly AppDbContext _dbContext;
 
-        // Expose the data stream as an observable
+        public MarketDataService(AppDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
         public IObservable<AgriculturalGood> MarketDataStream => _marketDataStream;
 
-        // Method to add new market data to the stream
         public void AddMarketData(AgriculturalGood good)
         {
-            _marketDataStream.OnNext(good);
+            try
+            {
+                // Save to the database
+                _dbContext.AgriculturalGoods.Add(good);
+                _dbContext.SaveChanges();
+
+                // Push to the stream
+                _marketDataStream.OnNext(good);
+            }
+            catch (Exception ex)
+            {
+                // Log the error or handle it appropriately
+                Console.WriteLine($"Error adding market data: {ex.Message}");
+            }
         }
     }
 }

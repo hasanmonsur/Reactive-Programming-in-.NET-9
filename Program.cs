@@ -1,3 +1,4 @@
+
 using AgriMarketAnalysis.Data;
 using AgriMarketAnalysis.Services;
 using Microsoft.EntityFrameworkCore;
@@ -8,10 +9,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddSingleton<MarketDataService>();
 
-// Other service registrations
+// Register other services
 builder.Services.AddControllers();
+
+
+builder.Services.AddScoped<MarketDataService>();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

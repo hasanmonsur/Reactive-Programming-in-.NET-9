@@ -1,7 +1,11 @@
 ﻿using AgriMarketAnalysis.Models;
 using AgriMarketAnalysis.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using System;
+using System.Linq;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 
 namespace AgriMarketAnalysis.Controllers
 {
@@ -10,6 +14,7 @@ namespace AgriMarketAnalysis.Controllers
     public class MarketAnalysisController : ControllerBase
     {
         private readonly MarketDataService _marketDataService;
+        private readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
 
         public MarketAnalysisController(MarketDataService marketDataService)
         {
@@ -29,14 +34,17 @@ namespace AgriMarketAnalysis.Controllers
         public async Task<IActionResult> GetMarketTrends()
         {
             var trends = await _marketDataService.MarketDataStream
-                .Where(good => good.Timestamp >= DateTime.UtcNow.AddHours(-1)) // Last hour's data
-                .GroupBy(good => good.Name)
-                .Select(group => new
-                {
-                    Good = group.Key,
-                    AveragePrice = group.Average(g => g.Price)
-                })
-                .ToList();
+            .Where(good => good.Timestamp >= DateTime.UtcNow.AddHours(-1))
+            .GroupBy(good => good.Name)
+            .SelectMany(group => group
+            .ToList()
+            .Select(goods => new
+            {
+                Good = group.Key,
+                AveragePrice = goods.Average(g => g.Price),
+                Count = goods.Count
+            }))
+            .ToList();
 
             return Ok(trends);
         }
